@@ -1,0 +1,2 @@
+grunt
+node app.js

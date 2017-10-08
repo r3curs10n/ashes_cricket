@@ -1,0 +1,75 @@
+<!doctype html> 
+<html lang="en"> 
+<head> 
+	<meta charset="UTF-8" />
+	<title>Phaser - Getting started</title>
+	<script type="text/javascript" src="js/phaser.js"></script>
+    <style type="text/css">
+        body {
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+
+<script src="http://localhost:8120/socket.io/socket.io.js"></script>
+<script type="text/javascript">
+var socket;
+function create(){
+  socket = io.connect("http://localhost", {port: 8120, transports: ["websocket"]});
+  setEventHandlers();
+  batsman_sprite = game.add.sprite(150, 200);
+  batsman_sprite.name = "batsman";
+  batsman_sprite.body.immovable = true;
+
+  bowler_sprite = game.add.sprite(150, 200);
+  bowler_sprite.name = "bowler";
+  bowler_sprite.body.immovable = true;
+}
+
+function update()
+{
+
+}
+var setEventHandlers = function() {
+    // Socket connection successful
+    socket.on("connect", onSocketConnected);
+
+    // Socket disconnection
+    socket.on("disconnect", onSocketDisconnect);
+
+    // New player message received
+    socket.on("new player", onNewPlayer);
+
+    // Player removed message received
+    socket.on("remove player", onRemovePlayer);
+
+    //Tell the connected player that he is gonna bat
+    socket.on("you are batsman", setBatsman);
+
+    //Tell the connected player that he is gonna bowl
+    socket.on("you are bowler", setBowler);
+
+    socket.on("bowler is", setBowler);
+
+    socket.on("batsman is", setBatsman);
+
+    socket.on("move bat", changeBatPosition);
+
+    socket.on("bowl", startBowl);
+
+    socket.on("simulate", simulate);
+
+    socket.on("reverse roles", reverse);
+
+    socket.on("game finished", finished);
+};
+
+var setBatsman = function(data) {
+
+
+}
+</script>
+
+</body>
+</html>

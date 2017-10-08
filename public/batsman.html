@@ -1,0 +1,510 @@
+<!doctype html> 
+<html lang="en"> 
+<head> 
+	<meta charset="UTF-8" />
+    <title>Phaser - Making your first game, part 7</title>
+	<script type="text/javascript" src="js/phaser.min.js"></script>
+  <style type="text/css">
+      body {
+        margin: 0;
+      }
+  </style>
+</head>
+<body>
+
+<script type="text/javascript">
+
+var game = new Phaser.Game(1000, 600, Phaser.AUTO, 'phaser-example', { preload: preload, create: create, update: update });
+
+function preload() {
+
+    game.load.image('pad', 'assets/pad.jpg');
+    game.load.image('ball', 'assets/firstaid.png');
+    game.load.image('sky', 'assets/sky.png');
+    game.load.image('shoe', 'assets/shoe.jpg');
+    game.load.image('thigh_pad', 'assets/thigh_pad.jpg');
+    game.load.image('t_shirt3', 'assets/t_shirt3.jpg');
+    game.load.image('shoulder', 'assets/shoulder.png');
+    game.load.image('arm', 'assets/shoulder.png');
+    game.load.image('bat', 'assets/bat.jpg');
+    game.load.image('star', 'assets/star.png');
+    game.load.image('wicket', 'assets/wicket.jpg');
+    game.load.image('wicket_dislodged', 'assets/wicket_dislodged.jpg');
+
+}
+var cursors;
+var sprites = {};
+var mouseSprite = null;
+var materials = {}
+var gameover=0,ballText,no_of_balls=0;
+var bowl;
+
+function rads(deg) {
+  return deg*3.1416/180;
+}
+
+function repeat(func, interval) {
+  function go() {
+    func();
+    setTimeout(go, interval);
+  }
+  go();
+}
+
+// collision groups
+C_BAT = 1;
+C_BALL = 2;
+C_GROUND = 4;
+C_WICKET=8;
+
+OX = 150;   // position of back shoe - x
+OY = 500;   // position of back shoe - y
+OWX=15;
+OWY=435;
+DBL = 200;  // distance between shoes
+
+SCALE = 100;
+var lowerLegSize = 1.05*SCALE,
+    upperLegSize = 1.05*SCALE,
+    spineSize = 1.36*SCALE,
+    upperArmSize = 0.78*SCALE,
+    lowerArmSize = 0.78*SCALE,
+    tboneSize = 0.8*SCALE,
+    tboneLSize = 0*SCALE,
+    batSize = 1.75*SCALE,
+    batSizeW = 0.3*SCALE;
+
+var skeleton = [
+  {
+    id: 'lowerLeftLeg',
+    assetKey: 'pad',
+    length: lowerLegSize,
+    position: {
+      x: OX+DBL,
+      y: OY,
+      angle: rads(-90)
+    },
+    zindex: -10,
+  },
+  {
+    id: 'lowerRightLeg',
+    assetKey: 'pad',
+    length: lowerLegSize,
+    position: {
+      x: OX,
+      y: OY,
+      angle: rads(-90)
+    },
+    zindex: -10,
+  },
+  {
+    id: 'upperLeftLeg',
+    assetKey: 'thigh_pad',
+    length: upperLegSize,
+    position: {
+      x: OX+DBL,
+      y: OY-lowerLegSize,
+      angle: rads(-90)
+    },
+    zindex: -5,
+  },
+  {
+    id: 'upperRightLeg',
+    assetKey: 'thigh_pad',
+    length: upperLegSize,
+    position: {
+      x: OX,
+      y: OY-lowerLegSize,
+      angle: rads(-90)
+    },
+    zindex: -7,
+  },
+  {
+    id: 'spine',
+    assetKey: 't_shirt3',
+    length: spineSize,
+    position: {
+      x: OX+DBL/2,
+      y: OY-(lowerLegSize+upperLegSize),
+      angle: rads(-90)
+    },
+    zindex: 0,
+  },
+  {
+    id: 'lowerLeftArm',
+    assetKey: 'shoulder',
+    length: lowerArmSize,
+    position: {
+      x: OX+DBL,
+      y: OY-(lowerLegSize+upperLegSize+spineSize-upperArmSize-lowerArmSize),
+      angle: rads(90)
+    },
+    zindex: -12,
+  },
+  {
+    id: 'lowerRightArm',
+    assetKey: 'shoulder',
+    length: lowerArmSize,
+    position: {
+      x: OX,
+      y: OY-(lowerLegSize+upperLegSize+spineSize-upperArmSize-lowerArmSize),
+      angle: rads(90)
+    },
+    zindex: -12,
+  },
+  {
+    id: 'upperLeftArm',
+    assetKey: 'shoulder',
+    length: upperArmSize,
+    position: {
+      x: OX+DBL,
+      y: OY-(lowerLegSize+upperLegSize+spineSize-lowerArmSize),
+      angle: rads(-90)
+    },
+    zindex: 1,
+  },
+  {
+    id: 'upperRightArm',
+    assetKey: 'shoulder',
+    length: upperArmSize,
+    position: {
+      x: OX,
+      y: OY-(lowerLegSize+upperLegSize+spineSize-lowerArmSize),
+      angle: rads(-90)
+    },
+    zindex: -11,
+  }
+];
+
+// delay: after how many milliseconds should the specified limits be applied
+var joints = {
+  leftKnee: {
+    a: {
+      bone: 'lowerLeftLeg',
+      pivot: [lowerLegSize/2, 0]
+    },
+    b: {
+      bone: 'upperLeftLeg',
+      pivot: [-upperLegSize/2, 0]
+    },
+    limits: [{min: rads(-90), max: rads(-30), delay: 0}]
+  },
+  rightKnee: {
+    a: {
+      bone: 'lowerRightLeg',
+      pivot: [lowerLegSize/2, 0]
+    },
+    b: {
+      bone: 'upperRightLeg',
+      pivot: [-upperLegSize/2, 0]
+    },
+    limits: [{min: rads(-25), max: rads(-5), delay: 0}]
+  },
+  leftPelvis: {
+    a: {
+      bone: 'upperLeftLeg',
+      pivot: [upperLegSize/2, 0]
+    },
+    b: {
+      bone: 'spine',
+      pivot: [-spineSize/2, 0]
+    },
+    limits: [{min: rads(10), max: rads(60), delay: 0}]
+  },
+  rightPelvis: {
+    a: {
+      bone: 'upperRightLeg',
+      pivot: [upperLegSize/2, 0]
+    },
+    b: {
+      bone: 'spine',
+      pivot: [-spineSize/2, 0]
+    },
+    limits: [{min: rads(-20), max: rads(100), delay: 0}]
+  },
+  leftShoulder: {
+    a: {
+      bone: 'upperLeftArm',
+      pivot: [-upperArmSize/2, 0]
+    },
+    b: {
+      bone: 'spine',
+      pivot: [spineSize/2, tboneSize/2]
+    },
+    limits: [
+      {min: rads(-210), max: rads(-50), delay: 0}
+    ]
+  },
+  rightShoulder: {
+    a: {
+      bone: 'upperRightArm',
+      pivot: [-upperArmSize/2, 0]
+    },
+    b: {
+      bone: 'spine',
+      pivot: [spineSize/2, -tboneSize/2]
+    },
+    limits: [
+      {min: rads(40), max: rads(230), delay: 0}
+    ]
+  },
+  leftElbow: {
+    a: {
+      bone: 'lowerLeftArm',
+      pivot: [-lowerArmSize/2, 0]
+    },
+    b: {
+      bone: 'upperLeftArm',
+      pivot: [upperArmSize/2, 0]
+    },
+    limits: [
+      {min: rads(-150), max: rads(-30), delay: 0}
+    ]
+  },
+  rightElbow: {
+    a: {
+      bone: 'lowerRightArm',
+      pivot: [-lowerArmSize/2, 0]
+    },
+    b: {
+      bone: 'upperRightArm',
+      pivot: [upperArmSize/2, 0]
+    },
+    limits: [
+      {min: rads(30), max: rads(150), delay: 0}
+    ]
+  },
+};
+
+function createBoneSprite(id, assetKey, length) {
+  var sprite = game.add.sprite(100, 100, assetKey);
+  game.physics.p2.enable(sprite);
+  sprite.body.clearShapes();
+  sprite.body.addLine(length, 0, 0, 0);
+  sprite.body.clearCollision(true, true);
+  sprites[id] = sprite;
+  return sprite;
+}
+
+function createSkeleton(skeleton, joints) {
+  skeleton.sort(function(l, r) {
+    return -(l.zindex - r.zindex);
+  });
+
+  for (var i in skeleton) {
+    var bone = skeleton[i];
+    var sprite = createBoneSprite(bone.id, bone.assetKey, bone.length);
+    sprite.body.x = bone.position.x;
+    sprite.body.y = bone.position.y;
+    sprite.body.rotation = bone.position.angle;
+  }
+  
+  for (var jointId in joints) {
+    var joint = joints[jointId];
+    var constraint = game.physics.p2.createRevoluteConstraint(sprites[joint.a.bone], joint.a.pivot, sprites[joint.b.bone], joint.b.pivot);
+    for (var limitId in joint.limits) {
+      var limit = joint.limits[limitId];
+      function go(constraint, limit){
+        setTimeout(function(){
+          constraint.setLimits(limit.min, limit.max);
+        }, limit.delay);
+      }
+      go(constraint, limit);
+    }
+  }
+
+}
+
+function glueLegs() {
+
+  var leftShoe = game.add.sprite(OX+DBL, OY, 'shoe');
+  sprites.leftShoe = leftShoe;
+  game.physics.p2.enable(leftShoe);
+  leftShoe.body.clearCollision(true, true);
+  leftShoe.body.static = true;
+
+  var rightShoe = game.add.sprite(OX, OY, 'shoe');
+  sprites.rightShoe = rightShoe;
+  game.physics.p2.enable(rightShoe);
+  rightShoe.body.clearCollision(true, true);
+  rightShoe.body.static = true;
+
+  
+  game.physics.p2.createDistanceConstraint(leftShoe, sprites.lowerLeftLeg, 0, [0,0], [-lowerLegSize/2, 0]);
+  game.physics.p2.createDistanceConstraint(rightShoe, sprites.lowerRightLeg, 0, [0,0], [-lowerLegSize/2, 0]);
+  
+}
+
+function addBat() {
+  var bat = game.add.sprite(0, 0, 'bat');
+  sprites.bat = bat;
+  game.physics.p2.enable(bat);
+  bat.body.clearCollision(true, true);
+  bat.body.setCollisionGroup(C_BAT);
+  bat.body.collides([C_BALL, C_GROUND,C_WICKET]);
+  bat.body.setMaterial(materials.bat);
+  
+  // hands together
+  game.physics.p2.createDistanceConstraint(
+    sprites.lowerLeftArm,
+    sprites.lowerRightArm,
+    0,
+    [lowerArmSize/2, 0],
+    [lowerArmSize/2, 0]
+  );
+
+  // add bat
+  var c = game.physics.p2.createRevoluteConstraint(
+    sprites.bat,
+    [-batSize/2, 0],
+    sprites.lowerLeftArm,
+    [lowerArmSize/2, 0]
+  );
+  c.setLimits(rads(-25), rads(-10));
+}
+
+function bowled()
+{
+   //console.log('bold');
+   gameover=1;
+}
+
+function hit_wicket()
+{
+  //console.log('hit_wicket');
+  gameover=1;
+}
+
+function addWicket() {
+  var wicket = game.add.sprite(OWX, OWY, 'wicket');
+  sprites.wicket = wicket;
+  game.physics.p2.enable(wicket);
+  wicket.body.clearCollision(true, true);
+  wicket.body.setCollisionGroup(C_WICKET);
+  wicket.body.collides(C_BALL,bowled,this);
+  wicket.body.collides(C_BAT,hit_wicket,this);
+  wicket.body.static=true;
+}
+
+function addGround() {
+  var ground = game.add.sprite(0, OY);
+  sprites.ground = ground;
+  game.physics.p2.enable(ground);
+  ground.body.clearShapes();
+  ground.body.addPlane();
+  ground.body.clearCollision(true, true);
+  ground.body.setCollisionGroup(C_GROUND);
+  ground.body.collides([C_BAT, C_BALL]);
+  ground.body.static = true;
+  ground.body.setMaterial(materials.ground);
+}
+
+function createBall() {
+    var ball = game.add.sprite(0, 0, 'ball');
+    sprites.ball = ball;
+    game.physics.p2.enable(ball);
+    ball.body.clearShapes();
+    ball.body.addCircle(20);
+    ball.body.mass = 0.2;
+    ball.body.clearCollision(true, true);
+    ball.body.setCollisionGroup(C_BALL);
+    ball.body.collides([C_BAT, C_GROUND,C_WICKET]);
+    ball.body.setMaterial(materials.ball);
+    return function(){
+      no_of_balls=no_of_balls+1;
+      ballText.text='No of balls: '+no_of_balls;
+      ball.body.x = 900;
+      ball.body.y = 100;
+      ball.body.velocity.x = -500;
+      ball.body.velocity.y = 500;
+    }
+}
+
+function createMaterials() {
+  materials.bat = game.physics.p2.createMaterial('batMaterial');
+  materials.ball = game.physics.p2.createMaterial('ballMaterial');
+  materials.ground = game.physics.p2.createMaterial('groundMaterial');
+
+  materials.groundBall = game.physics.p2.createContactMaterial(materials.ground, materials.ball);
+  materials.groundBall.restitution = 0.4;
+  materials.groundBall.stiffness = 10000000;
+
+  materials.batBall = game.physics.p2.createContactMaterial(materials.bat, materials.ball);
+  materials.batBall.restitution = 0.5;
+  materials.batBall.stiffness = 10000000;
+}
+
+function create(){
+
+  game.add.image(0, 0, 'sky');
+
+  //  Enable p2 physics
+  game.physics.startSystem(Phaser.Physics.P2JS);
+  game.physics.p2.setImpactEvents(true);
+
+  console.log(game.physics.p2);
+  game.physics.p2.gravity.y = 200;
+
+  // create collision groups
+  C_BAT = game.physics.p2.createCollisionGroup();
+  C_BALL = game.physics.p2.createCollisionGroup();
+  C_GROUND = game.physics.p2.createCollisionGroup();
+  C_WICKET = game.physics.p2.createCollisionGroup();
+
+  // create materials
+  createMaterials();
+
+  createSkeleton(skeleton, joints);
+  glueLegs();
+  addGround();
+  addWicket();
+  ballText = game.add.text(16, 16, 'No of balls: 0', { fontSize: '32px', fill: '#000' });
+  // wait for arms to stabilize before adding bat
+  setTimeout(addBat, 1000);
+  setTimeout(startMouseInput, 1500);
+
+  past_time=(new Date()).getTime()-3000;
+  bowl=createBall();
+}
+
+function startMouseInput() {
+
+  mouseSprite = game.add.sprite(0, 0, 'ball');
+  game.physics.p2.enable(mouseSprite);
+  mouseSprite.body.clearCollision(true, true);
+  mouseSprite.body.static = true;
+
+  game.input.addMoveCallback(move, this);
+  game.physics.p2.createRevoluteConstraint(mouseSprite, [0,0], sprites.bat, [0,0], 500);
+
+}
+
+function move() {
+  if (mouseSprite !== null) {
+    mouseSprite.body.x = game.input.mousePointer.x;
+    mouseSprite.body.y = game.input.mousePointer.y;
+  }
+}
+
+function update() {
+  if(gameover==0)
+  {
+      present_time=(new Date()).getTime();
+      if(present_time-past_time>=3000)
+      { 
+          bowl();
+          past_time=present_time;
+      }    
+  }
+  else if(gameover==1)
+  {
+      gameover=2;
+      sprites.wicket.loadTexture('wicket_dislodged');
+      ballText.text="GAME OVER";
+  }
+}
+
+</script>
+
+</body>
+</html>

@@ -1,0 +1,25 @@
+{
+  "name": "ashes_cricket",
+  "version": "0.0.0",
+  "dependencies": {
+    "express": ">= 4.4.5",
+    "ejs": ">= 0.0.0",
+    "body-parser": ">= 1.4.3",
+    "morgan": ">= 1.1.1",
+    "cookie-parser": ">= 1.3.2",
+    "method-override": ">= 2.0.2",
+    "express-session": ">= 1.6.1",
+    "passport": ">= 0.0.0",
+    "passport-facebook": ">= 0.0.0",
+    "fbgraph": ">= 1.0.0",
+    "mongodb": ">= 1.0.0",
+    "cron": "1.0.0",
+    "async": "1.3.0",
+    "connect-mongo": "0.8.2",
+    "socket.io": "~0.9.16"
+  },
+  "devDependencies": {
+    "grunt": "~0.4.5",
+    "grunt-contrib-uglify": "~0.5.0"
+  }
+}

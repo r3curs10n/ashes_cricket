@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+<body>
+	<form method='post' action='/new_challenge'>
+		Opponent id:
+		<input name='opponent_id' value='<%= opid %>' />
+		<input type='submit' value='Create Challenge'/>
+	</form>
+
+	<form method='post' action='/accept_challenge'>
+		Challenge id:
+		<input name='challenge_id' value='<%= cid %>' />
+		<input type='submit' value='Accept Challenge'/>
+	</form>
+</body>
+</html>

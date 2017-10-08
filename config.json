@@ -1,0 +1,6 @@
+{
+  "fb_app_id": "xxx",
+  "fb_app_secret": "xxx",
+  "port": 3000,
+  "domain": "localhost:3000"
+}
